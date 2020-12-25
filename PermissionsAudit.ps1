@@ -1,16 +1,23 @@
 ﻿[CmdletBinding()]
-Param()
+Param(
+    [string]$Root
+)
 
-$RootFolder = "C:\Powershell"
+$ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
+if (!$Root) { $Root = $ScriptPath }
+elseif (!(Test-Path -Path $Root)) { throw 'Invalid root' }
 
-$OutputFile = $($RootFolder.Split([IO.Path]::GetInvalidFileNameChars()) -join '') + ".csv"
-$ErrorFile = $($RootFolder.Split([IO.Path]::GetInvalidFileNameChars()) -join '') + ".errors.csv"
+$OutputFile = "$ScriptPath\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) -join '').csv"
+$ErrorFile = "$ScriptPath\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) -join '').errors.csv"
+
+if ((Test-Path -Path "$OutputFile") -and !$(try { [IO.File]::OpenWrite("$OutputFile").close();$true } catch {$false})) { throw "$OutputFile open." }
+if ((Test-Path -Path "$ErrorFile") -and !$(try { [IO.File]::OpenWrite("$ErrorFile").close();$true } catch {$false})) { throw "$ErrorFile open." }
 
 $PermissionsOutput = @()
 $ErrorOutput = @()
 $FormattedOutput = @()
 
-function LogError ([string]$Path,[string]$Exception) {
+function Log-PermissionsError ([string]$Path,[string]$Exception) {
     New-Object -TypeName PSObject -Property @{
         Path = $Path
         Exception = $Exception
@@ -38,13 +45,13 @@ function Get-Permissions {
             }
         }
     } catch {
-        LogError -Path $Path -Exception $_.exception
+        Log-PermissionsError -Path $Path -Exception $_.exception
     }
 }
 
 $PermissionsOutput = $(
-    Get-Permissions -Path "$RootFolder" -Inheritance $true;
-    cmd /c dir "$RootFolder" /b /s | %{ Get-Permissions -Path "$_" }
+    Get-Permissions -Path "$Root" -Inheritance $true;
+    cmd /c dir "$Root" /b /s | %{ Get-Permissions -Path "$_" }
 )
 
 $PermissionsOutput | Select-Object -Property Folder,Control,Access,Inheritance -Unique | ForEach-Object {
