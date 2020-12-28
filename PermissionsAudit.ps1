@@ -1,17 +1,24 @@
 ﻿[CmdletBinding()]
 Param(
-    [string]$Root
+    [string]$Root,
+    [string]$ReportDir
 )
 
 $ScriptPath = split-path -parent $MyInvocation.MyCommand.Definition
-if (!$Root) { $Root = $ScriptPath }
-elseif (!(Test-Path -Path $Root)) { throw 'Invalid root' }
+if (!$ReportDir) { $ReportDir = $ScriptPath }
+elseif (!(Test-Path -Path "$ReportDir")) { throw 'Invalid report directory' }
 
-$OutputFile = "$ScriptPath\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) -join '').csv"
-$ErrorFile = "$ScriptPath\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) -join '').errors.csv"
+if (!$Root) { $Root = $ScriptPath }
+elseif (!(Test-Path -Path "$Root")) { throw 'Invalid root' }
+
+$ReportPrefix = "$ReportDir\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) -join '')"
+
+$OutputFile = "$ReportPrefix.csv"
+$ErrorFile = "$ReportPrefix.errors.csv"
 
 if ((Test-Path -Path "$OutputFile") -and !$(try { [IO.File]::OpenWrite("$OutputFile").close();$true } catch {$false})) { throw "$OutputFile open." }
 if ((Test-Path -Path "$ErrorFile") -and !$(try { [IO.File]::OpenWrite("$ErrorFile").close();$true } catch {$false})) { throw "$ErrorFile open." }
+if ((Test-Path -Path "$ReportPrefix.zip") -and !$(try { [IO.File]::OpenWrite("$ReportPrefix.zip").close();$true } catch {$false})) { throw "$ReportPrefix.zip open." }
 
 $PermissionsOutput = @()
 $ErrorOutput = @()
@@ -73,3 +80,12 @@ $PermissionsOutput | Select-Object -Property Folder,Control,Access,Inheritance -
 }
 
 $FormattedOutput | Select-Object -Property Folder,Users,Control,Access,Inheritance | Export-Csv -NoTypeInformation -Path $OutputFile
+
+$ReportFiles = @()
+if (Test-Path -Path "$OutputFile") { $ReportFiles += $OutputFile }
+if (Test-Path -Path "$ErrorFile") { $ReportFiles += $ErrorFile }
+Compress-Archive -LiteralPath $ReportFiles -DestinationPath "$ReportPrefix.zip" -Force
+if (Test-Path -Path "$OutputFile") { Remove-Item -Path "$OutputFile" -Force }
+if (Test-Path -Path "$ErrorFile") { Remove-Item -Path "$ErrorFile" -Force }
+
+Write-Output "$ReportPrefix.zip"
