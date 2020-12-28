@@ -16,9 +16,16 @@ $ReportPrefix = "$ReportDir\$($Root.Split([IO.Path]::GetInvalidFileNameChars()) 
 $OutputFile = "$ReportPrefix.csv"
 $ErrorFile = "$ReportPrefix.errors.csv"
 
-if ((Test-Path -Path "$OutputFile") -and !$(try { [IO.File]::OpenWrite("$OutputFile").close();$true } catch {$false})) { throw "$OutputFile open." }
-if ((Test-Path -Path "$ErrorFile") -and !$(try { [IO.File]::OpenWrite("$ErrorFile").close();$true } catch {$false})) { throw "$ErrorFile open." }
-if ((Test-Path -Path "$ReportPrefix.zip") -and !$(try { [IO.File]::OpenWrite("$ReportPrefix.zip").close();$true } catch {$false})) { throw "$ReportPrefix.zip open." }
+function Test-Closed {
+    param(
+        [string]$Path
+    )
+    return $(try { [IO.File]::OpenWrite("$Path").close();$true } catch {$false})
+}
+
+if ((Test-Path -Path "$OutputFile") -and !(Test-Closed -Path "$Outputfile")) { throw "$OutputFile open." }
+if ((Test-Path -Path "$ErrorFile") -and !(Test-Closed -Path "$ErrorFile")) { throw "$ErrorFile open." }
+if ((Test-Path -Path "$ReportPrefix.zip") -and !(Test-Closed -Path "$ReportPrefix.zip")) { throw "$ReportPrefix.zip open." }
 
 $PermissionsOutput = @()
 $ErrorOutput = @()
