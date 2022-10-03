@@ -5,19 +5,19 @@ $Arguments = @(
     "/EnableCEIP=false"
 )
 
-#AutoUpdateCheck
+#AutoUpdateCheck - Select Parameter (auto, disabled, manual)
 $Arguments += "/AutoUpdateCheck=$AutoUpdateCheck"
 
-#AutoUpdateStream
+#AutoUpdateStream - Select Parameter (LTSR, Current)
 $Arguments += "/AutoUpdateStream=$AutoUpdateStream"
 
-#Enable SSO
+#Enable SSO - Bool Parameter
 if ($includeSSON) { $Arguments += '/includeSSON ENABLE_SSON="Yes"' }
 
-#IncludeAppProtection
+#IncludeAppProtection - Bool Parameter
 if ($includeappprotection) { $Arguments += '/includeappprotection' }
 
-#STORE0 Information
+#STORE0 Information - String Parameters
 $STORE0 = @($STORE0_storename,$STORE0_servernamedomain,$STORE0_storedescription).where({$_})
 if ($STORE0 -match ';') { throw "Semi-colons BAD" }
 if ($STORE0.Count -eq 3) {
